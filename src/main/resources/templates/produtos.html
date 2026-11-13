@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Produtos — Catálogo</title><link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+<body><main class="container">
+  <header>
+    <div><div class="brand">Ada Tech · Testes Automatizados I</div><h1>Catálogo de produtos</h1>
+      <p>Spring MVC + Thymeleaf + H2 + Spring Security</p></div>
+    <div class="account">
+      <span th:if="${logado}" id="usuario-logado">Olá, <strong th:text="${usuario}"></strong></span>
+      <a th:unless="${logado}" th:href="@{/login}" id="link-login">Entrar</a>
+      <form th:if="${logado}" th:action="@{/logout}" method="post">
+        <button class="secondary" type="submit">Sair</button>
+      </form>
+    </div>
+  </header>
+  <section class="panel">
+    <h2>Pesquisar produtos</h2>
+    <form th:action="@{/produtos}" method="get" class="search-form">
+      <input type="search" name="nome" id="pesquisa-nome" placeholder="Ex.: Mouse" th:value="${filtro}">
+      <button id="btn-pesquisar" type="submit">Pesquisar</button>
+      <a th:href="@{/produtos}">Limpar</a>
+    </form>
+  </section>
+  <section class="panel"><h2>Produtos disponíveis</h2>
+    <p id="sem-resultados" th:if="${#lists.isEmpty(produtos)}">Nenhum produto encontrado.</p>
+    <table id="tabela-produtos" th:unless="${#lists.isEmpty(produtos)}">
+      <thead><tr><th>ID</th><th>Nome</th><th>Preço (R$)</th><th>Quantidade</th></tr></thead>
+      <tbody><tr th:each="produto : ${produtos}" data-testid="linha-produto">
+        <td th:text="${produto.id}">1</td>
+        <td th:text="${produto.nome}">Mouse</td>
+        <td th:text="${produto.preco}">85.00</td>
+        <td th:text="${produto.quantidade}">25</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <section class="panel" th:if="${admin}" id="painel-admin">
+    <h2>Cadastrar produto — Administrador</h2>
+    <form th:action="@{/produtos}" th:object="${novoProduto}" method="post" id="form-produto">
+      <label for="nome">Nome</label><input id="nome" th:field="*{nome}" required maxlength="120">
+      <small class="error" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></small>
+      <label for="preco">Preço</label><input id="preco" type="number" step="0.01" min="0.01" th:field="*{preco}" required>
+      <small class="error" th:if="${#fields.hasErrors('preco')}" th:errors="*{preco}"></small>
+      <label for="quantidade">Quantidade</label><input id="quantidade" type="number" min="0" th:field="*{quantidade}" required>
+      <small class="error" th:if="${#fields.hasErrors('quantidade')}" th:errors="*{quantidade}"></small>
+      <button type="submit" id="btn-cadastrar">Cadastrar</button>
+    </form>
+  </section>
+  <p class="hint" th:unless="${admin}">A listagem é pública; somente administradores cadastram produtos.</p>
+</main></body></html>
