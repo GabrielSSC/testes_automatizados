@@ -4,62 +4,65 @@ import br.edu.ada.catalogo.produtos.repository.ProdutoEntity;
 import br.edu.ada.catalogo.produtos.repository.ProdutoRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProdutoServiceTest {
+    @Mock
+    ProdutoRepository repository;
+    @InjectMocks
+    ProdutoService service;
 
     @Test
-    void givenProdutoId_whenBuscarProdutoPorId_thenProdutoDeveSerRetornado() {
-        //given
-        Long produtoId = 1L;
+    void givenNomeInformado_whenListar_thenRetornarProdutosEncontrados() {
+        var entity = new ProdutoEntity("Mouse sem fio", new BigDecimal("85.00"), 8);
+        entity.setId(1L);
+        when(repository.findByNomeContainingIgnoreCaseOrderByIdAsc("mouse")).thenReturn(List.of(entity));
 
-        //mocando o objeto repository
-        ProdutoRepository repository = Mockito.mock(ProdutoRepository.class);
+        var produtos = service.listar("mouse");
 
-        //defino o objeto que será retornado pelo mock quando o método findById for chamado
-        ProdutoEntity produtoMocado = new ProdutoEntity("Produto 1", new BigDecimal(10), 12);
-        produtoMocado.setId(produtoId);
-        //mocar o comportamento
-        when(repository.findById(1L)).thenReturn(Optional.of(produtoMocado));
-
-        ProdutoService produtoService = new ProdutoService(repository);
-
-        //when
-        Produto resultado = produtoService.buscar(produtoId);
-
-        //then
-        assertNotNull(resultado);
-        assertEquals(produtoId, resultado.id());
+        assertEquals(1, produtos.size());
+        assertEquals(new Produto(1L, "Mouse sem fio", new BigDecimal("85.00"), 8), produtos.get(0));
+        verify(repository).findByNomeContainingIgnoreCaseOrderByIdAsc("mouse");
+        verify(repository, never()).findAll(any(org.springframework.data.domain.Sort.class));
     }
 
     @Test
-    void givenProdutoIdQueNaoExiste_whenBuscarProdutoPorId_thenProdutoDeveSerRetornado() {
-        //given
-        Long produtoId = 1L;
+    void givenProdutoComEstoque_whenRetirarQuantidadeValida_thenReduzirEstoque() {
+        // Given
+        var entity = new ProdutoEntity("Mouse", new BigDecimal("85.00"), 10);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        // When
+        var produto = service.retirarEstoque(1L, 3);
+        // Then
+        assertEquals(7, produto.quantidade());
+        assertEquals(7, entity.getQuantidade());
+        verify(repository).findById(1L);
+    }
 
-        //mocando o objeto repository
-        ProdutoRepository repository = Mockito.mock(ProdutoRepository.class);
+    @Test
+    void givenProdutoSemEstoqueSuficiente_whenRetirarQuantidade_thenLancarConflito() {
+        // Given
+        var entity = new ProdutoEntity("Mouse", new BigDecimal("85.00"), 2);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        // When / Then
+        assertThrows(EstoqueInsuficienteException.class, () -> service.retirarEstoque(1L, 5));
+        assertEquals(2, entity.getQuantidade());
+        verify(repository, never()).save(any());
+    }
 
-        //defino o objeto que será retornado pelo mock quando o método findById for chamado
-        ProdutoEntity produtoMocado = new ProdutoEntity("Produto 1", new BigDecimal(10), 12);
-        produtoMocado.setId(produtoId);
-        //mocar o comportamento
-        when(repository.findById(1L)).thenReturn(Optional.empty());
-
-        ProdutoService produtoService = new ProdutoService(repository);
-
-        //when
-        var resultado = assertThrows(ProdutoNaoEncontradoException.class, () ->produtoService.buscar(produtoId));
-
-        //then
-        assertEquals("Produto 1 não encontrado.", resultado.getMessage());
+    @Test
+    void givenProdutoInexistente_whenBuscar_thenLancarNaoEncontrado() {
+        // Given
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+        // When / Then
+        assertThrows(ProdutoNaoEncontradoException.class, () -> service.buscar(99L));
     }
 }

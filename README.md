@@ -1,4 +1,4 @@
-# Catálogo API — Aula 02 (hands-on)
+# Catálogo API — Aula 04 (hands-on)
 
 Este projeto Maven é **autónomo e executável**. Foi gerado a partir do ZIP funcional corrigido pelo professor, preservando o `pom.xml`, os Resources, o Spring Security, o H2 e as páginas Thymeleaf.
 
